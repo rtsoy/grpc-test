@@ -47,4 +47,14 @@ func main() {
 			Age: %d
         `, resp.GetId(), resp.GetName(), resp.GetAge())
 	}
+
+	response, err := c.GetUsers(ctx, &pb.GetUsersParams{})
+	if err != nil {
+		log.Fatalf("failed to retrieve users: %v", err)
+	}
+
+	log.Println("USERS LIST")
+	for _, user := range response.GetUsers() {
+		log.Printf("ID: %d, Name: %s, Age: %d", user.GetId(), user.GetName(), user.GetAge())
+	}
 }
