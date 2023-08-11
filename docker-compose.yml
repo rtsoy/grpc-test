@@ -1,0 +1,43 @@
+version: "3"
+
+services:
+  app:
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: usermgmt_server/Dockerfile
+    env_file: .env
+    depends_on:
+      - postgres
+    ports:
+      - "50051:50051"
+
+  migrate:
+    restart: on-failure
+    image: migrate/migrate
+    volumes:
+      - ./migrations:/migrations
+    entrypoint:
+      [
+        "migrate",
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}?sslmode=disable",
+      ]
+    command: ["up"]
+    depends_on:
+      - postgres
+    network_mode: host
+
+  postgres:
+    restart: always
+    image: postgres:latest
+    env_file: .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
