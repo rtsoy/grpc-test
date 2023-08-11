@@ -40,12 +40,7 @@ func main() {
 			log.Fatalf("failed to create an user: %v", err)
 		}
 
-		log.Printf(`
-			USER DETAILS:
-			ID: %d
-			Name: %s
-			Age: %d
-        `, resp.GetId(), resp.GetName(), resp.GetAge())
+		log.Printf("USER :: ID=%d, NAME=%s, AGE=%d\n", resp.GetId(), resp.GetName(), resp.GetAge())
 	}
 
 	response, err := c.GetUsers(ctx, &pb.GetUsersParams{})
@@ -53,5 +48,5 @@ func main() {
 		log.Fatalf("failed to retrieve users: %v", err)
 	}
 
-	log.Println("USERS LIST\n", response.GetUsers())
+	log.Printf("USERS LIST :: %v\n", response.GetUsers())
 }
