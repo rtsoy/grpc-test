@@ -53,8 +53,5 @@ func main() {
 		log.Fatalf("failed to retrieve users: %v", err)
 	}
 
-	log.Println("USERS LIST")
-	for _, user := range response.GetUsers() {
-		log.Printf("ID: %d, Name: %s, Age: %d", user.GetId(), user.GetName(), user.GetAge())
-	}
+	log.Println("USERS LIST\n", response.GetUsers())
 }
