@@ -2,26 +2,29 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"net"
+	"os"
 
 	pb "github.com/rtsoy/grpc-test/usermgmt"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const port = ":50051"
+const (
+	port     = ":50051"
+	filename = "users.json"
+)
 
 type UserManagementServer struct {
 	pb.UnimplementedUserManagementServer
-	userList *pb.UsersList
 }
 
 func NewUserManagementServer() *UserManagementServer {
-	return &UserManagementServer{
-		userList: &pb.UsersList{},
-	}
+	return &UserManagementServer{}
 }
 
 func (s *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser) (*pb.User, error) {
@@ -33,13 +36,60 @@ func (s *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser
 		Age:  in.GetAge(),
 	}
 
-	s.userList.Users = append(s.userList.Users, createdUser)
+	usersList := &pb.UsersList{}
+
+	readBytes, err := os.ReadFile(filename)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			log.Printf("file `%s` not found. creating a new file...\n", filename)
+
+			usersList.Users = append(usersList.Users, createdUser)
+
+			jsonBytes, err := protojson.Marshal(usersList)
+			if err != nil {
+				log.Fatalf("JSON Marshalling failed: %v", err)
+			}
+
+			if err := os.WriteFile(filename, jsonBytes, 0664); err != nil {
+				log.Fatalf("failed write to file: %v", err)
+			}
+
+			return createdUser, nil
+		}
+
+		log.Fatalf("failed to read a file: %v", err)
+	}
+
+	if err := protojson.Unmarshal(readBytes, usersList); err != nil {
+		log.Fatal("JSON Unmarshalling failed")
+	}
+
+	usersList.Users = append(usersList.Users, createdUser)
+
+	jsonBytes, err := protojson.Marshal(usersList)
+	if err != nil {
+		log.Fatalf("JSON Marshalling failed: %v", err)
+	}
+
+	if err := os.WriteFile(filename, jsonBytes, 0664); err != nil {
+		log.Fatalf("failed write to file: %v", err)
+	}
 
 	return createdUser, nil
 }
 
 func (s *UserManagementServer) GetUsers(ctx context.Context, in *pb.GetUsersParams) (*pb.UsersList, error) {
-	return s.userList, nil
+	jsonBytes, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("failed to read from file: %v", err)
+	}
+
+	usersList := &pb.UsersList{}
+	if err := protojson.Unmarshal(jsonBytes, usersList); err != nil {
+		log.Fatalf("fJSON Unmarshalling failed")
+	}
+
+	return usersList, nil
 }
 
 func (s *UserManagementServer) Run() error {
